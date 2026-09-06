@@ -89,6 +89,14 @@ module.exports = async function handler(req,res){
       if(!rows.length)return json(res,404,{error:'المستخدم غير موجود'}); return json(res,200,{user:userOut(rows[0])});
     }
 
+    if(req.method==='PATCH' && path==='/api/me'){
+      const a=auth(req,res,'customer'); if(a.error)return;
+      const name=String(req.body?.name||'').trim(); const country=String(req.body?.country||'مصر').trim(); const address=String(req.body?.address||'').trim();
+      if(!name||!address)return json(res,400,{error:'الاسم والعنوان مطلوبان'});
+      const rows=await sql`UPDATE users SET name=${name},country=${country||'مصر'},address=${address} WHERE id=${a.user.id} RETURNING *`;
+      if(!rows.length)return json(res,404,{error:'المستخدم غير موجود'}); return json(res,200,{user:userOut(rows[0])});
+    }
+
     if(req.method==='POST' && path==='/api/orders'){
       const a=auth(req,res,'customer'); if(a.error)return;
       const users=await sql`SELECT * FROM users WHERE id=${a.user.id} LIMIT 1`; if(!users.length)return json(res,404,{error:'المستخدم غير موجود'});
