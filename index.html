@@ -54,7 +54,7 @@
 <div class="container searchWrap">
   <div class="searchPanel">
     <div class="field"><label>الماركة</label><select id="brand"><option value="">كل الماركات</option><option>BMW</option><option>Mercedes-Benz</option><option>Audi</option><option>Volkswagen</option><option>Toyota</option><option>Nissan</option><option>Honda</option><option>Hyundai</option><option>Kia</option><option>Chery</option><option>BYD</option><option>Geely</option></select></div>
-    <div class="field"><label>الموديل</label><select id="model"><option value="">كل الموديلات</option><option>Corolla</option><option>Sunny</option><option>Elantra</option><option>Sportage</option><option>C200</option><option>BMW 5 Series</option><option>BMW X5</option></select></div>
+    <div class="field"><label>الموديل</label><select id="model"><option value="">كل الموديلات</option></select></div>
     <div class="field"><label>نوع القطعة</label><select id="partCategory"><option value="">كل القطع</option><option value="german">الألماني 🇩🇪</option><option value="japan">الياباني 🇯🇵</option><option value="korea">الكوري 🇰🇷</option><option value="china">الصيني 🇨🇳</option><option value="oils">الزيوت والفلاتر 🛢️</option></select></div>
     <div class="field"><label>رقم القطعة</label><input id="partNo" placeholder="Part Number"></div>
     <button class="searchBtn" onclick="searchProducts()">بحث الآن 🔎</button>
@@ -133,7 +133,7 @@ async function submitAuth(){
  }catch(e){authMsg.innerHTML='<div class="msg err">'+esc(e.message)+'</div>'}
 }
 function showProfile(){
- const u=user||{};document.querySelector('#authModal .box').innerHTML='<button class="close" onclick="closeModal(\\'authModal\\')">×</button><h2>👤 حسابي</h2><div style="display:grid;gap:9px"><input id="pname" value="'+esc(u.name)+'" placeholder="الاسم"><input value="'+esc(u.phone)+'" disabled><input id="pcountry" value="'+esc(u.country||'مصر')+'" placeholder="الدولة"><input id="paddress" value="'+esc(u.address||'')+'" placeholder="العنوان"><button class="btn primary" onclick="saveProfile()">حفظ البيانات</button><button class="btn ghost" onclick="logout()">تسجيل الخروج</button></div>';
+ const u=user||{};document.querySelector('#authModal .box').innerHTML='<button class="close" onclick="closeModal(\'authModal\')">×</button><h2>👤 حسابي</h2><div style="display:grid;gap:9px"><input id="pname" value="'+esc(u.name)+'" placeholder="الاسم"><input value="'+esc(u.phone)+'" disabled><input id="pcountry" value="'+esc(u.country||'مصر')+'" placeholder="الدولة"><input id="paddress" value="'+esc(u.address||'')+'" placeholder="العنوان"><button class="btn primary" onclick="saveProfile()">حفظ البيانات</button><button class="btn ghost" onclick="logout()">تسجيل الخروج</button></div>';
  document.getElementById('authModal').classList.add('open');
 }
 async function saveProfile(){try{const r=await fetch(API+'/api/me',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({name:pname.value,country:pcountry.value,address:paddress.value})});const d=await r.json();if(!r.ok)throw Error(d.error);user=d.user;localStorage.setItem('autoq_user',JSON.stringify(user));showToast('تم حفظ البيانات');closeModal('authModal')}catch(e){showToast(e.message)}}
@@ -142,7 +142,7 @@ async function loadProducts(){
  try{const r=await fetch(API+'/api/products');const d=await r.json();if(!r.ok)throw Error(d.error);products=d.products||[];productState.textContent=products.length+' منتج';renderProducts(products)}
  catch(e){productState.textContent='تعذر الاتصال';productsGrid.innerHTML='<div class="empty">لم يتم تحميل المنتجات. تأكد من إعداد Neon وVercel.</div>'}
 }
-function renderProducts(arr){productsGrid.innerHTML=arr.length?arr.map(p=>'<article class="product"><div class="productImg">'+(p.image?'<img src="'+esc(p.image)+'" alt="'+esc(p.name)+'" loading="lazy">':'<div class="placeholder">⚙️</div>')+'</div><div class="productBody"><span class="pill">'+catName(p.category)+'</span><h3>'+esc(p.name)+'</h3><div class="meta">'+esc([p.brand,p.model,p.part_number].filter(Boolean).join(' • '))+'</div><div class="price"><strong>'+money(p.price)+' ج.م</strong><button class="add" onclick="addCart(\\''+esc(p.id)+'\\')">أضف للسلة</button></div></div></article>').join(''):'<div class="empty">لا توجد منتجات منشورة حاليًا.</div>'}
+function renderProducts(arr){productsGrid.innerHTML=arr.length?arr.map(p=>'<article class="product"><div class="productImg">'+(p.image?'<img src="'+esc(p.image)+'" alt="'+esc(p.name)+'" loading="lazy">':'<div class="placeholder">⚙️</div>')+'</div><div class="productBody"><span class="pill">'+catName(p.category)+'</span><h3>'+esc(p.name)+'</h3><div class="meta">'+esc([p.brand,p.model,p.part_number].filter(Boolean).join(' • '))+'</div><div class="price"><strong>'+money(p.price)+' ج.م</strong><button class="add" onclick="addCart(\''+esc(p.id)+'\')">أضف للسلة</button></div></div></article>').join(''):'<div class="empty">لا توجد منتجات منشورة حاليًا.</div>'}
 function addCart(id){const p=products.find(x=>x.id===id);if(!p)return;const old=cart.find(x=>x.id===id);if(old)old.qty++;else cart.push({id:p.id,name:p.name,price:Number(p.price),qty:1,image:p.image||''});saveCart();showToast('تمت إضافة المنتج للسلة')}
 function saveCart(){localStorage.setItem('autoq_cart',JSON.stringify(cart));cartCount.textContent=cart.reduce((a,x)=>a+x.qty,0)}
 function scrollToCart(){renderCart();document.getElementById('cartModal').classList.add('open')}
@@ -150,6 +150,24 @@ function renderCart(){const total=cart.reduce((a,x)=>a+x.price*x.qty,0);cartArea
 function removeCart(i){cart.splice(i,1);saveCart();renderCart()}
 async function checkout(){if(!token){closeModal('cartModal');openAuth();showToast('سجل الدخول أولًا لإتمام الطلب');return}if(!cart.length)return;try{const total=cart.reduce((a,x)=>a+x.price*x.qty,0);const r=await fetch(API+'/api/orders',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({items:cart,total})});const d=await r.json();if(!r.ok)throw Error(d.error);cart=[];saveCart();closeModal('cartModal');showToast('تم استلام الطلب رقم '+d.order.id);loadOrders()}catch(e){showToast(e.message)}}
 async function loadOrders(){if(!token){ordersArea.textContent='سجل الدخول لمشاهدة طلباتك.';return}try{const r=await fetch(API+'/api/orders/my',{headers:{Authorization:'Bearer '+token}});const d=await r.json();if(!r.ok)throw Error(d.error);ordersArea.innerHTML=d.orders.length?d.orders.map(o=>'<div style="padding:14px 0;border-bottom:1px solid #252c34"><b>'+esc(o.id)+'</b> — '+money(o.total)+' ج.م — <span style="color:#ff8a26">'+esc(o.status)+'</span><div style="color:#a9b0b8;font-size:12px;margin-top:5px">'+new Date(o.created).toLocaleString('ar-EG')+'</div></div>').join(''):'لا توجد طلبات حتى الآن.'}catch(e){ordersArea.textContent=e.message}}
+const PART_MODELS={
+  "BMW":["5 Series","520i","X5","X3","3 Series","320i"],
+  "Mercedes-Benz":["C200","C180","E200","E300","S-Class","GLC"],
+  "Audi":["A3","A4","A5","A6","Q5","Q7"],
+  "Volkswagen":["Golf","Passat","Tiguan","Jetta","Touareg"],
+  "Toyota":["Corolla","Camry","Yaris","RAV4","Land Cruiser","Hilux"],
+  "Nissan":["Sunny","Qashqai","Juke","X-Trail","Patrol"],
+  "Honda":["Civic","Accord","CR-V","HR-V"],
+  "Hyundai":["Elantra","Tucson","Creta","Accent","Santa Fe"],
+  "Kia":["Sportage","Cerato","Sorento","Picanto","Rio"],
+  "Chery":["Tiggo 7","Tiggo 8","Arrizo 5","Tiggo 4"],
+  "BYD":["F3","Song Plus","Seal","Atto 3"],
+  "Geely":["Emgrand","Coolray","Geometry C","Okavango"]
+};
+function updatePartModels(){const b=brand.value;model.innerHTML='<option value="">'+(b?'كل موديلات '+b:'كل الموديلات')+'</option>'+(PART_MODELS[b]||[]).map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');}
+brand.addEventListener('change',updatePartModels);
+updatePartModels();
+
 function searchProducts(){const b=brand.value.toLowerCase(),m=model.value.toLowerCase(),c=partCategory.value,p=partNo.value.toLowerCase();const a=products.filter(x=>(!b||String(x.brand).toLowerCase().includes(b))&&(!m||String(x.model).toLowerCase().includes(m))&&(!c||x.category===c)&&(!p||String(x.part_number).toLowerCase().includes(p)));document.getElementById('productsSection').scrollIntoView();renderProducts(a);productState.textContent=a.length+' نتيجة'}
 saveCart();loadProducts();loadOrders();
 </script>
