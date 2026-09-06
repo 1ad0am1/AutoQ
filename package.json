@@ -1,0 +1,9 @@
+{
+  "name": "autoq-real-admin",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
