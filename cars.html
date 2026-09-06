@@ -18,7 +18,7 @@ const cars=[
 ['Kia Sportage 2025','2,550,000','11,000 كم','أوتوماتيك','الإسكندرية','🇰🇷'],
 ['Chery Tiggo 7 2024','1,050,000','30,000 كم','أوتوماتيك','القاهرة','🇨🇳'],
 ['BYD Song Plus 2025','1,650,000','9,000 كم','أوتوماتيك','الجيزة','🇨🇳']];
-function render(a){count.textContent=a.length+' سيارة';grid.innerHTML=a.map(c=>'<article class="card"><div class="pic">🚘</div><div class="body"><span class="badge">'+c[5]+' مصر</span><h3>'+c[0]+'</h3><div class="meta">'+c[2]+' • '+c[3]+' • '+c[4]+'</div><div class="bottom"><strong class="price">'+c[1]+' ج.م</strong><button class="btn primary" onclick="alert(\'للتواصل وإتمام البيع: سجل دخولك ثم تواصل مع AutoQ\')">تفاصيل</button></div></div></article>').join('')}
+function render(a){count.textContent=a.length+' سيارة';grid.innerHTML=a.map(c=>'<article class="card"><div class="pic">🚘</div><div class="body"><span class="badge">'+c[5]+' مصر</span><h3>'+c[0]+'</h3><div class="meta">'+c[2]+' • '+c[3]+' • '+c[4]+'</div><div class="bottom"><strong class="price">'+c[1]+' ج.م</strong><button class="btn primary" onclick="alert(\\'للتواصل وإتمام البيع: سجل دخولك ثم تواصل مع AutoQ\\')">تفاصيل</button></div></div></article>').join('')}
 function filterCars(){const b=brand.value,m=model.value,mi=Number(min.value||0),ma=Number(max.value||Infinity);render(cars.filter(c=>(b==='كل الماركات'||c[0].startsWith(b))&&(m==='كل الموديلات'||c[0].includes(m.replace('BMW ','')))&&Number(c[1].replaceAll(',',''))>=mi&&Number(c[1].replaceAll(',',''))<=ma))}
 render(cars);
 </script></body></html>
