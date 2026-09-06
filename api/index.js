@@ -35,7 +35,7 @@ function orderOut(r){
   return {...r,user_id:undefined,items:JSON.parse(r.items_json||'[]'),history:JSON.parse(r.history_json||'[]')};
 }
 function productOut(r){
-  return {id:r.id,name:r.name,category:r.category,brand:r.brand||'',model:r.model||'',part_number:r.part_number||'',price:Number(r.price||0),stock:Number(r.stock||0),image:r.image||'',description:r.description||'',active:r.active!==false,created:r.created,updated:r.updated};
+  let images=[]; try{images=JSON.parse(r.images||'[]')}catch{} if(!Array.isArray(images)||!images.length) images=r.image?[r.image]:[]; return {id:r.id,name:r.name,category:r.category,brand:r.brand||'',model:r.model||'',part_number:r.part_number||'',price:Number(r.price||0),stock:Number(r.stock||0),image:r.image||images[0]||'',images,description:r.description||'',active:r.active!==false,created:r.created,updated:r.updated};
 }
 
 async function initDb(){
@@ -74,11 +74,13 @@ async function initDb(){
     price NUMERIC(12,2) NOT NULL DEFAULT 0,
     stock INTEGER NOT NULL DEFAULT 0,
     image TEXT NOT NULL DEFAULT '',
+    images TEXT NOT NULL DEFAULT '[]',
     description TEXT NOT NULL DEFAULT '',
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT NOT NULL DEFAULT '[]'`;
 }
 
 module.exports = async (req,res)=>{
@@ -206,11 +208,16 @@ module.exports = async (req,res)=>{
       const b=req.body||{}, id=String(b.id||('P-'+Date.now()));
       const name=String(b.name||'').trim(), category=String(b.category||'');
       const price=Number(b.price||0), stock=Math.max(0,Math.floor(Number(b.stock||0)));
+      let images=Array.isArray(b.images)?b.images.filter(x=>typeof x==='string'&&x.trim()).slice(0,6):[];
+      if(!images.length && b.image) images=[String(b.image)];
+      if(images.some(x=>x.length>700000)||JSON.stringify(images).length>3900000)
+        return send(res,400,{error:'حجم الصور كبير جدًا. اختر صورًا أصغر أو صورًا أقل.'});
+      const image=images[0]||'', imagesJson=JSON.stringify(images);
       if(!name||!CATEGORIES.includes(category)||!Number.isFinite(price)||price<0)
         return send(res,400,{error:'بيانات المنتج غير صحيحة'});
-      const rows=await sql`INSERT INTO products(id,name,category,brand,model,part_number,price,stock,image,description,active,created,updated)
-        VALUES(${id},${name},${category},${String(b.brand||'')},${String(b.model||'')},${String(b.part_number||'')},${price},${stock},${String(b.image||'')},${String(b.description||'')},${b.active!==false},NOW(),NOW())
-        ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,brand=EXCLUDED.brand,model=EXCLUDED.model,part_number=EXCLUDED.part_number,price=EXCLUDED.price,stock=EXCLUDED.stock,image=EXCLUDED.image,description=EXCLUDED.description,active=EXCLUDED.active,updated=NOW()
+      const rows=await sql`INSERT INTO products(id,name,category,brand,model,part_number,price,stock,image,images,description,active,created,updated)
+        VALUES(${id},${name},${category},${String(b.brand||'')},${String(b.model||'')},${String(b.part_number||'')},${price},${stock},${image},${imagesJson},${String(b.description||'')},${b.active!==false},NOW(),NOW())
+        ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,brand=EXCLUDED.brand,model=EXCLUDED.model,part_number=EXCLUDED.part_number,price=EXCLUDED.price,stock=EXCLUDED.stock,image=EXCLUDED.image,images=EXCLUDED.images,description=EXCLUDED.description,active=EXCLUDED.active,updated=NOW()
         RETURNING *`;
       return send(res,200,{product:productOut(rows[0])});
     }
@@ -226,8 +233,12 @@ module.exports = async (req,res)=>{
       const category=b.category===undefined?p.category:String(b.category);
       const price=b.price===undefined?Number(p.price):Number(b.price);
       const stock=b.stock===undefined?Number(p.stock):Math.max(0,Math.floor(Number(b.stock)));
+      let images; if(Array.isArray(b.images)) images=b.images.filter(x=>typeof x==='string'&&x.trim()).slice(0,6); else {try{images=JSON.parse(p.images||'[]')}catch{images=p.image?[p.image]:[]}};
+      if(!images.length && b.image) images=[String(b.image)];
+      if(images.some(x=>x.length>700000)||JSON.stringify(images).length>3900000)return send(res,400,{error:'حجم الصور كبير جدًا'});
+      const image=images[0]||'', imagesJson=JSON.stringify(images);
       if(!name||!CATEGORIES.includes(category)||!Number.isFinite(price)||price<0)return send(res,400,{error:'بيانات المنتج غير صحيحة'});
-      const rows=await sql`UPDATE products SET name=${name},category=${category},brand=${b.brand===undefined?p.brand:String(b.brand)},model=${b.model===undefined?p.model:String(b.model)},part_number=${b.part_number===undefined?p.part_number:String(b.part_number)},price=${price},stock=${stock},image=${b.image===undefined?p.image:String(b.image)},description=${b.description===undefined?p.description:String(b.description)},active=${b.active===undefined?p.active:!!b.active},updated=NOW() WHERE id=${id} RETURNING *`;
+      const rows=await sql`UPDATE products SET name=${name},category=${category},brand=${b.brand===undefined?p.brand:String(b.brand)},model=${b.model===undefined?p.model:String(b.model)},part_number=${b.part_number===undefined?p.part_number:String(b.part_number)},price=${price},stock=${stock},image=${image},images=${imagesJson},description=${b.description===undefined?p.description:String(b.description)},active=${b.active===undefined?p.active:!!b.active},updated=NOW() WHERE id=${id} RETURNING *`;
       return send(res,200,{product:productOut(rows[0])});
     }
 
